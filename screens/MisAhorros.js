@@ -1,47 +1,47 @@
 import { useEffect, useState } from "react";
-import { FlatList, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { supabase } from "../supabase";
 
-export default function MisAhorros({ usuario }) {
-  const [misAhorros, setMisAhorros] = useState([]);
+export default function MisAhorros({ usuario, refreshKey }) {
+  const [ahorros, setAhorros] = useState([]);
 
   useEffect(() => {
-    if (usuario) {
-      fetchMisAhorros();
-    }
-  }, [usuario]);
+    if (usuario) fetchAhorros();
+  }, [usuario, refreshKey]); // 🔄 recarga al guardar
 
-  const fetchMisAhorros = async () => {
+  const fetchAhorros = async () => {
     const { data, error } = await supabase
       .from("ahorros")
       .select("*")
-      .eq("usuario", usuario);
+      .eq("usuario", usuario)
+      .order("created_at", { ascending: false });
 
-    if (!error) {
-      setMisAhorros(data);
+    if (error) {
+      console.log("MisAhorros fetch error:", error);
+      return;
     }
+    setAhorros(data || []);
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.titulo}>Mis Ahorros ({usuario})</Text>
-      <FlatList
-        data={misAhorros}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={({ item }) => (
-          <Text>- ${item.monto}</Text>
-        )}
-      />
+      <Text style={styles.titulo}>Mis Ahorros</Text>
+      {ahorros.length === 0 ? (
+        <Text style={styles.empty}>No tienes ahorros aún.</Text>
+      ) : (
+        ahorros.map((item) => (
+          <Text key={item.id} style={styles.item}>
+            {item.usuario}: ${item.monto}
+          </Text>
+        ))
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    marginTop: 20,
-  },
-  titulo: {
-    fontWeight: "bold",
-    marginBottom: 10,
-  },
+  container: { marginBottom: 20 },
+  titulo: { fontSize: 18, fontWeight: "bold", marginBottom: 10, color: "#000" },
+  item: { fontSize: 16, color: "#000", marginBottom: 5 },
+  empty: { color: "#444" },
 });
